@@ -148,21 +148,4 @@ npm run dev
 - Frontend: `http://localhost:3000`
 - Backend: `http://localhost:5001`
 
-## Seeding subjects (optional)
-
-To insert starter subjects into MongoDB:
-
-```bash
-cd backend
-node seed.js
-```
-
-## Notes / security
-
-- **Never commit secrets**: API keys, DB URIs, and JWT secrets must stay in `.env` files.
-- **If a real key was ever committed or shared publicly**, rotate it immediately (generate a new key/secret).
-
-## License
-
-ISC (see `backend/package.json`).
 
