@@ -1,6 +1,8 @@
 const ChatHistory = require('../models/ChatHistory');
 const { askGemini } = require('../utils/gemini');
 
+const MAX_CONTEXT_MESSAGES = 20;
+
 // @desc    Ask Gemini AI a question
 // @route   POST /api/chat/ask
 // @access  Private
@@ -8,9 +10,6 @@ const askQuestion = async (req, res) => {
   try {
     const { message, sessionId } = req.body;
     
-    // Attempt to get answer from AI
-    const aiResponse = await askGemini(message);
-
     let chatSession;
     if (sessionId) {
       chatSession = await ChatHistory.findById(sessionId);
@@ -23,6 +22,13 @@ const askQuestion = async (req, res) => {
         messages: []
       });
     }
+
+    // Build multi-turn context from saved history + latest user message
+    const recent = (chatSession.messages || []).slice(-MAX_CONTEXT_MESSAGES);
+    const aiResponse = await askGemini([
+      ...recent.map((m) => ({ role: m.role, content: m.content })),
+      { role: 'user', content: message },
+    ]);
 
     // Add user message
     chatSession.messages.push({ role: 'user', content: message });

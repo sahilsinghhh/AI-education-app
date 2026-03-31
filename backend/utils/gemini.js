@@ -19,7 +19,7 @@ const askGemini = async (prompt) => {
     const ai = getGenAI();
     if (!ai) throw new Error("Gemini AI is not configured.");
 
-    // Use gemini-2.5-flash with a strict PCM system instruction
+    // Use gemini-2.5-flash with StudyBuddy tutor system instruction
     const model = ai.getGenerativeModel({
       model: "gemini-2.5-flash",
       systemInstruction:
@@ -27,7 +27,22 @@ const askGemini = async (prompt) => {
         "Adapt explanations to the student's level (school/college), use step-by-step reasoning when helpful, and include examples and practice questions when asked. " +
         "If the user request is not educational (e.g., entertainment, gossip) or is unsafe/illegal (cheating, hacking, self-harm, violence), politely refuse and redirect to a safe, learning-focused alternative."
     });
-    const result = await model.generateContent(prompt);
+
+    // Backwards compatible:
+    // - askGemini("text prompt") for one-shot prompts (e.g., quiz generation)
+    // - askGemini([{role:'user'|'model', content:'...'}, ...]) for multi-turn chat
+    const isMultiTurn = Array.isArray(prompt);
+
+    const request = isMultiTurn
+      ? {
+          contents: prompt.map((m) => ({
+            role: m.role === 'model' ? 'model' : 'user',
+            parts: [{ text: m.content }],
+          })),
+        }
+      : prompt;
+
+    const result = await model.generateContent(request);
     const response = await result.response;
     return response.text();
   } catch (error) {
