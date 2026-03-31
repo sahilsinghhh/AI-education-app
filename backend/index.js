@@ -28,9 +28,23 @@ app.use(cors({
     
     // Allow localhost for development
     if (origin.includes('localhost') || origin.includes('127.0.0.1')) return callback(null, true);
-    
-    // Allow your Render frontend URL (update this with your actual URL)
-    if (origin.includes('onrender.com')) return callback(null, true);
+
+    // Allow Vercel deployments (preview + production), e.g. https://your-app.vercel.app
+    try {
+      const hostname = new URL(origin).hostname;
+      if (hostname === 'vercel.app' || hostname.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+    } catch (_) {
+      // ignore invalid origin
+    }
+
+    // Allow extra origins via env var (comma-separated)
+    // Example: CORS_ORIGIN=https://yourdomain.com,https://www.yourdomain.com
+    if (process.env.CORS_ORIGIN) {
+      const allowed = process.env.CORS_ORIGIN.split(',').map(s => s.trim()).filter(Boolean);
+      if (allowed.includes(origin)) return callback(null, true);
+    }
     
     return callback(new Error('Not allowed by CORS'));
   },
