@@ -1,0 +1,14 @@
+{
+  "name": "studybuddy-ai",
+  "version": "1.0.0",
+  "description": "Root project for StudyBuddy AI",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd backend && npx nodemon --watch .env --watch . -e js,json,env index.js",
+    "client": "cd frontend && npm run dev",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
