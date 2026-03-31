@@ -61,19 +61,6 @@ flowchart TD
   D --> L[Profile]
 ```
 
-## System design diagram (high level)
-
-```mermaid
-flowchart LR
-  U[User Browser] -->|HTTPS| FE[Next.js Frontend :3000]
-  FE -->|fetch() with Bearer JWT| API[Express API :5001 /api]
-  API --> DB[(MongoDB)]
-  API -->|prompt/response| AI[Google Gemini API]
-
-  subgraph Storage
-    DB
-  end
-```
 
 ## API routes (backend)
 
