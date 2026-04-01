@@ -12,6 +12,18 @@ export const login = async (email, password) => {
   return data;
 };
 
+export const loginWithGoogle = async (credential) => {
+  const data = await apiFetch('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ credential }),
+  });
+  if (data.token) {
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data));
+  }
+  return data;
+};
+
 export const register = async (name, email, password) => {
   const data = await apiFetch('/auth/register', {
     method: 'POST',

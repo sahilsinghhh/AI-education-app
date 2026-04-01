@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { login } from '../services/authService';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
+import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -56,6 +57,22 @@ export default function Login() {
               {loading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
+
+          {process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && (
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                </div>
+              </div>
+              <div className="mt-4 w-full [&>div]:w-full [&_iframe]:!w-full">
+                <GoogleSignInButton />
+              </div>
+            </div>
+          )}
 
           <div className="mt-6">
             <div className="relative">
