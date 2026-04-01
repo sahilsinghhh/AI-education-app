@@ -132,4 +132,91 @@ const googleAuth = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, googleAuth };
+// @desc    Forgot password - generate reset token
+// @route   POST /api/auth/forgot-password
+// @access  Public
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ message: 'Please provide an email' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+resetPasswordToken +resetPasswordExpire');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found with that email' });
+    }
+
+    // Generate reset token
+    const resetToken = user.generatePasswordResetToken();
+    await user.save();
+
+    // In production, send email with reset URL
+    // For now, return token for development/testing
+    // In real app: const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    
+    res.status(200).json({ 
+      message: 'Password reset token sent to your email',
+      resetToken: resetToken, // Remove in production - only for testing
+      resetUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Reset password with token
+// @route   POST /api/auth/reset-password/:token
+// @access  Public
+const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { password, passwordConfirm } = req.body;
+
+    if (!password || !passwordConfirm) {
+      return res.status(400).json({ message: 'Please provide password and password confirmation' });
+    }
+
+    if (password !== passwordConfirm) {
+      return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Hash the token to find user
+    const crypto = require('crypto');
+    const resetPasswordToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: resetPasswordToken,
+      resetPasswordExpire: { $gt: Date.now() }
+    }).select('+resetPasswordToken +resetPasswordExpire');
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired reset token' });
+    }
+
+    // Update password
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.status(200).json({ 
+      message: 'Password reset successfully',
+      _id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      token: generateToken(user._id)
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, googleAuth, forgotPassword, resetPassword };

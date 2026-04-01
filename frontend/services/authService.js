@@ -44,3 +44,22 @@ export const logout = () => {
 export const getProfile = async () => {
   return await apiFetch('/users/profile');
 };
+
+export const forgotPassword = async (email) => {
+  return await apiFetch('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+};
+
+export const resetPassword = async (token, password, passwordConfirm) => {
+  const data = await apiFetch(`/auth/reset-password/${token}`, {
+    method: 'POST',
+    body: JSON.stringify({ password, passwordConfirm }),
+  });
+  if (data.token) {
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data));
+  }
+  return data;
+};
