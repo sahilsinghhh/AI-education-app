@@ -1,6 +1,7 @@
 const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const { sendPasswordResetEmail } = require('../utils/resendEmail');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -138,13 +139,13 @@ const googleAuth = async (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    
+
     if (!email) {
       return res.status(400).json({ message: 'Please provide an email' });
     }
 
     const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+resetPasswordToken +resetPasswordExpire');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found with that email' });
     }
@@ -153,15 +154,35 @@ const forgotPassword = async (req, res) => {
     const resetToken = user.generatePasswordResetToken();
     await user.save();
 
-    // In production, send email with reset URL
-    // For now, return token for development/testing
-    // In real app: const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-    
-    res.status(200).json({ 
-      message: 'Password reset token sent to your email',
-      resetToken: resetToken, // Remove in production - only for testing
-      resetUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password/${resetToken}`
-    });
+    const frontendBaseUrl = process.env.FRONTEND_URL;
+    const resetUrl = `${frontendBaseUrl.replace(/\/$/, '')}/reset-password/${resetToken}`;
+
+    try {
+      await sendPasswordResetEmail({
+        to: user.email,
+        name: user.name,
+        resetUrl,
+      });
+    } catch (emailError) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save();
+      return res.status(500).json({
+        message: 'Failed to send password reset email',
+        error: process.env.NODE_ENV === 'production' ? undefined : emailError.message,
+      });
+    }
+
+    const response = {
+      message: 'Password reset instructions sent to your email',
+    };
+
+    if (process.env.NODE_ENV !== 'production') {
+      response.resetToken = resetToken;
+      response.resetUrl = resetUrl;
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -206,7 +227,7 @@ const resetPassword = async (req, res) => {
     user.resetPasswordExpire = undefined;
     await user.save();
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: 'Password reset successfully',
       _id: user.id,
       name: user.name,
