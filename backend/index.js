@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const { errorHandler } = require('./middleware/errorMiddleware');
+const { generalLimiter, fileUploadLimiter, quizGenerationLimiter, authLimiter, chatLimiter } = require('./middleware/rateLimitMiddleware');
 
 // Load API routes
 const authRoutes = require('./routes/authRoutes');
@@ -54,11 +55,18 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Routes
+// Apply general rate limiter to all API routes
+app.use('/api/', generalLimiter);
+
+// Routes with specific rate limiters
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/subjects', subjectRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/api/chat', chatLimiter, chatRoutes);
+app.use('/api/quizzes/generate', quizGenerationLimiter);
+app.use('/api/quizzes/generate-from-file', fileUploadLimiter);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
